@@ -1,0 +1,922 @@
+<!-- /index.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RoboFriend — Demo</title>
+  <style>
+    :root{
+      --bg: #0e1220;
+      --panel: rgba(255,255,255,.08);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.65);
+      --accent: #7dd3fc;
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+
+      --light-on: 0;
+      --room: 0.15;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100svh;
+      display:grid;
+      place-items:center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1000px 600px at 50% 30%, rgba(125,211,252,.20), transparent 60%),
+        radial-gradient(900px 500px at 80% 80%, rgba(34,197,94,.10), transparent 55%),
+        radial-gradient(900px 500px at 20% 80%, rgba(245,158,11,.10), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,.03), transparent 40%),
+        linear-gradient(180deg, #050815, #0e1220 60%, #090b14);
+      transition: filter .35s ease, background .35s ease;
+    }
+
+    .app{
+      width:min(980px, 92vw);
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:18px;
+      align-items:stretch;
+    }
+
+    header{
+      grid-column:1 / -1;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:10px;
+      padding:14px 16px;
+      border-radius:16px;
+      background: var(--panel);
+      border:1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+    }
+    header h1{
+      margin:0;
+      font-size:18px;
+      letter-spacing:.3px;
+    }
+    header p{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(125,211,252,.10);
+      border:1px solid rgba(125,211,252,.25);
+      color: rgba(255,255,255,.9);
+      font-size:12px;
+      white-space:nowrap;
+    }
+    .dot{
+      width:8px;height:8px;border-radius:99px;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(125,211,252,.9);
+    }
+
+    /* PANEL IZQ: escenario + robot */
+    .stage{
+      position:relative;
+      overflow:hidden;
+      border-radius:18px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      min-height:520px;
+      display:grid;
+      place-items:center;
+    }
+
+    .floor{
+      position:absolute;
+      inset:auto 0 0 0;
+      height:40%;
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,.25));
+    }
+
+    /* LUZ DE HABITACIÓN */
+    .room-light{
+      position:absolute;
+      inset:-30% -30% auto -30%;
+      height:80%;
+      background:
+        radial-gradient(closest-side at 50% 20%,
+          rgba(255, 246, 196, calc(.06 + var(--light-on) * .45)),
+          transparent 65%);
+      pointer-events:none;
+      transition: opacity .35s ease;
+      opacity: calc(.7 + var(--light-on) * .5);
+      filter: blur(0px);
+    }
+
+    /* Robot */
+    .robot{
+      position:relative;
+      width:260px;
+      height:320px;
+      transform-origin: 50% 80%;
+      animation: bob 2.8s ease-in-out infinite;
+      filter: drop-shadow(0 16px 36px rgba(0,0,0,.35));
+    }
+    @keyframes bob{
+      0%,100%{ transform: translateY(0) rotate(-.6deg);}
+      50%{ transform: translateY(10px) rotate(.6deg);}
+    }
+
+    .antenna{
+      position:absolute;
+      top:-22px; left:50%;
+      transform:translateX(-50%);
+      width:10px; height:26px;
+      background: rgba(255,255,255,.65);
+      border-radius:999px;
+      box-shadow: inset 0 -6px 0 rgba(0,0,0,.15);
+    }
+    .antenna:after{
+      content:"";
+      position:absolute;
+      top:-12px; left:50%;
+      transform:translateX(-50%);
+      width:18px; height:18px;
+      border-radius:99px;
+      background: rgba(125,211,252,.95);
+      box-shadow: 0 0 25px rgba(125,211,252,.9);
+    }
+
+    .head{
+      position:absolute;
+      top:10px; left:50%;
+      transform:translateX(-50%);
+      width:220px; height:160px;
+      border-radius:26px;
+      background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.22));
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 -14px 0 rgba(0,0,0,.12);
+    }
+
+    .face{
+      position:absolute;
+      inset:18px 18px 20px 18px;
+      border-radius:20px;
+      background: rgba(10, 15, 28, .68);
+      border:1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+    }
+
+    .eyes{
+      position:absolute;
+      top:42px; left:50%;
+      transform:translateX(-50%);
+      display:flex;
+      gap:26px;
+    }
+    .eye{
+      width:42px; height:42px;
+      border-radius:99px;
+      background: rgba(125,211,252,.15);
+      border:1px solid rgba(125,211,252,.35);
+      display:grid;
+      place-items:center;
+      box-shadow: 0 0 18px rgba(125,211,252,.18);
+    }
+    .pupil{
+      width:14px; height:14px; border-radius:99px;
+      background: rgba(125,211,252,.95);
+      box-shadow: 0 0 20px rgba(125,211,252,.85);
+      animation: look 4.5s ease-in-out infinite;
+    }
+    @keyframes look{
+      0%,100%{ transform: translate(0,0) }
+      25%{ transform: translate(6px,2px) }
+      50%{ transform: translate(-6px,2px) }
+      75%{ transform: translate(0,-2px) }
+    }
+
+    .mouth{
+      position:absolute;
+      left:50%; top:102px;
+      transform:translateX(-50%);
+      width:86px; height:14px;
+      border-radius:999px;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.12);
+      overflow:hidden;
+    }
+    .mouth:after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, transparent, rgba(125,211,252,.55), transparent);
+      transform: translateX(-100%);
+      animation: scan 2.4s ease-in-out infinite;
+      opacity:.9;
+    }
+    @keyframes scan{
+      0%,35%{ transform: translateX(-100%) }
+      65%,100%{ transform: translateX(100%) }
+    }
+
+    .cheeks{
+      position:absolute;
+      left:50%; top:90px;
+      transform:translateX(-50%);
+      width:170px;
+      display:flex;
+      justify-content:space-between;
+      padding:0 8px;
+      pointer-events:none;
+    }
+    .cheek{
+      width:14px; height:14px; border-radius:99px;
+      background: rgba(244,114,182,.18);
+      border:1px solid rgba(244,114,182,.25);
+      box-shadow: 0 0 18px rgba(244,114,182,.12);
+    }
+
+    .body{
+      position:absolute;
+      top:170px; left:50%;
+      transform:translateX(-50%);
+      width:240px; height:140px;
+      border-radius:26px;
+      background: linear-gradient(180deg, rgba(255,255,255,.50), rgba(255,255,255,.18));
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 -16px 0 rgba(0,0,0,.12);
+    }
+
+    .panel{
+      position:absolute;
+      top:20px; left:50%;
+      transform:translateX(-50%);
+      width:170px; height:86px;
+      border-radius:18px;
+      background: rgba(10, 15, 28, .68);
+      border:1px solid rgba(255,255,255,.10);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      padding:12px;
+      align-items:center;
+    }
+    .led{
+      width:14px; height:14px; border-radius:99px;
+      background: rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.10);
+      justify-self:start;
+      box-shadow:none;
+      transition: background .25s ease, box-shadow .25s ease, transform .25s ease;
+    }
+    .led.on{
+      background: rgba(34,197,94,.95);
+      box-shadow: 0 0 20px rgba(34,197,94,.85);
+      transform: scale(1.06);
+    }
+    .meter{
+      width:100%;
+      height:10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      grid-column:1 / -1;
+    }
+    .meter > span{
+      display:block;
+      height:100%;
+      width:35%;
+      background: rgba(125,211,252,.65);
+      transform-origin:left;
+      animation: meter 2.6s ease-in-out infinite;
+    }
+    @keyframes meter{
+      0%,100%{ transform: scaleX(.35) }
+      50%{ transform: scaleX(.95) }
+    }
+
+    .arm{
+      position:absolute;
+      top:210px;
+      width:84px; height:16px;
+      background: rgba(255,255,255,.40);
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:999px;
+      transform-origin: 10% 50%;
+    }
+    .arm.left{ left:-10px; transform: rotate(16deg); animation: waveL 3.2s ease-in-out infinite; }
+    .arm.right{ right:-10px; transform: rotate(-16deg); transform-origin: 90% 50%; animation: waveR 3.2s ease-in-out infinite; }
+
+    @keyframes waveL{
+      0%,100%{ transform: rotate(16deg) }
+      50%{ transform: rotate(32deg) }
+    }
+    @keyframes waveR{
+      0%,100%{ transform: rotate(-16deg) }
+      50%{ transform: rotate(-32deg) }
+    }
+
+    .hand{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      width:26px; height:26px;
+      border-radius:12px;
+      background: rgba(255,255,255,.30);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow: inset 0 -6px 0 rgba(0,0,0,.10);
+    }
+    .arm.left .hand{ right:-6px }
+    .arm.right .hand{ left:-6px }
+
+    .feet{
+      position:absolute;
+      top:300px; left:50%;
+      transform:translateX(-50%);
+      width:240px;
+      display:flex;
+      justify-content:space-between;
+      padding:0 30px;
+    }
+    .foot{
+      width:70px; height:22px;
+      border-radius:14px;
+      background: rgba(255,255,255,.22);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow: inset 0 -8px 0 rgba(0,0,0,.12);
+    }
+
+    /* PANEL DER: controles */
+    .controls{
+      border-radius:18px;
+      background: var(--panel);
+      border:1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(10px);
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .card{
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.12);
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    .title{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .icon{
+      width:34px;height:34px;border-radius:12px;
+      display:grid;place-items:center;
+      background: rgba(125,211,252,.10);
+      border:1px solid rgba(125,211,252,.20);
+      font-size:16px;
+    }
+    .title h2{
+      margin:0;
+      font-size:18px;
+      letter-spacing:.6px;
+    }
+    .title small{
+      display:block;
+      color: var(--muted);
+      margin-top:2px;
+      font-size:12px;
+    }
+
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.10);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:600;
+      letter-spacing:.15px;
+      transition: transform .08s ease, background .2s ease, border-color .2s ease;
+      user-select:none;
+    }
+    button:hover{ background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.20); }
+    button:active{ transform: translateY(1px) scale(.99); }
+    button.primary{
+      border-color: rgba(125,211,252,.35);
+      background: rgba(125,211,252,.18);
+    }
+    button.danger{
+      border-color: rgba(239,68,68,.35);
+      background: rgba(239,68,68,.14);
+    }
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    input{
+      width: 130px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      outline:none;
+    }
+
+    .status{
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.35;
+    }
+    .status strong{ color: var(--text); font-weight:700; }
+
+    .toast{
+      position:absolute;
+      top:18px; left:18px;
+      padding:10px 12px;
+      border-radius:12px;
+      background: rgba(0,0,0,.38);
+      border:1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.92);
+      font-size:22px;
+      font-weight: bold;
+      backdrop-filter: blur(10px);
+      transform: translateY(-10px);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .25s ease, transform .25s ease;
+    }
+    .toast.show{
+      opacity:1;
+      transform: translateY(0);
+    }
+
+    /* modo luz encendida (se hace por class en body) */
+    body.light-on{
+      filter: brightness(1.1) saturate(1.05);
+      background:
+        radial-gradient(1100px 700px at 50% 25%, rgba(255, 246, 196, .42), transparent 60%),
+        radial-gradient(900px 500px at 80% 80%, rgba(34,197,94,.10), transparent 55%),
+        radial-gradient(900px 500px at 20% 80%, rgba(245,158,11,.10), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,.05), transparent 40%),
+        linear-gradient(180deg, #0b1020, #151b2e 60%, #0b0f1a);
+    }
+
+    @media (max-width: 860px){
+      .app{ grid-template-columns: 1fr; }
+      .stage{ min-height: 480px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>RoboFriend</h1>
+      </div>
+      <div class="badge" aria-label="Robot status">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusLabel">Ready</span>
+      </div>
+    </header>
+
+    <section class="stage" aria-label="Robot stage">
+      <div class="toast" id="toast">Hello 👋</div>
+      <div class="room-light" id="roomLight"></div>
+      <div class="floor"></div>
+
+      <div class="robot" id="robot">
+        <div class="antenna"></div>
+
+        <div class="head">
+          <div class="face">
+            <div class="eyes">
+              <div class="eye"><div class="pupil"></div></div>
+              <div class="eye"><div class="pupil"></div></div>
+            </div>
+            <div class="cheeks">
+              <div class="cheek"></div>
+              <div class="cheek"></div>
+            </div>
+            <div class="mouth"></div>
+          </div>
+        </div>
+
+        <div class="arm left"><div class="hand"></div></div>
+        <div class="arm right"><div class="hand"></div></div>
+
+        <div class="body">
+          <div class="panel">
+            <div class="led" id="led"></div>
+            <div class="led" id="musicLed"></div>
+            <div class="meter"><span></span></div>
+          </div>
+        </div>
+
+        <div class="feet">
+          <div class="foot"></div>
+          <div class="foot"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="controls" aria-label="Controls">
+      <div class="card">
+        <div class="row">
+          <div class="title">
+            <div class="icon">💡</div>
+            <div>
+              <h2>Light</h2>
+            </div>
+          </div>
+          <button class="primary" id="btnLight">Turn On</button>
+        </div>
+        <div class="status" id="lightStatus">Status: <strong>Off</strong></div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="title">
+            <div class="icon">🎵</div>
+            <div>
+              <h2>Music</h2>
+              <small>Play your own music file (mp3)</small>
+            </div>
+          </div>
+          <div class="row">
+            <button class="primary" id="btnMusic">Play</button>
+            <button id="btnMusicStop" disabled>Stop</button>
+          </div>
+        </div>
+        <audio id="audioPlayer" src="tol.mp3"></audio>
+        <div class="status" id="musicStatus">Status: <strong>Stopped</strong></div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="title">
+            <div class="icon">⏰</div>
+            <div>
+              <h2>Alarm</h2>
+              <small>Set in minutes</small>
+            </div>
+          </div>
+          <div class="row">
+            <input id="alarmMinutes" type="number" min="1" step="1" value="1" aria-label="Minutes for alarm" />
+            <button class="primary" id="btnAlarm">Start</button>
+            <button class="danger" id="btnAlarmStop" disabled>Stop</button>
+          </div>
+        </div>
+        <div class="status" id="alarmStatus">Status: <strong>No alarm</strong></div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="title">
+            <div class="icon">🤖</div>
+            <div>
+              <h2>Message</h2>
+            </div>
+          </div>
+          <button id="btnHello">Greet</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="title">
+            <div class="icon">📝</div>
+            <div>
+              <h2>Notes & Tasks</h2>
+              <small>Write notes and check tasks</small>
+            </div>
+          </div>
+        </div>
+        <div>
+          <textarea id="notesArea" rows="3" style="width:100%;border-radius:8px;padding:8px;resize:vertical;" placeholder="Write your notes here..."></textarea>
+          <ul id="taskList" style="list-style:none;padding:0;margin-top:10px;"></ul>
+          <div style="margin-top:8px;display:flex;gap:8px;">
+            <input id="newTaskInput" type="text" placeholder="New task..." style="flex:1;border-radius:8px;padding:8px;" />
+            <button id="addTaskBtn" style="border-radius:8px;">Add</button>
+            <button id="deleteCheckedBtn" style="border-radius:8px;background:#ef4444;color:white;">Delete checked</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    /**
+     * RoboAmigo demo controller (no dependencies).
+     * Works offline & on GitHub Pages.
+     */
+
+    const el = {
+      body: document.body,
+      toast: document.getElementById("toast"),
+      statusDot: document.getElementById("statusDot"),
+      statusLabel: document.getElementById("statusLabel"),
+
+      btnLight: document.getElementById("btnLight"),
+      lightStatus: document.getElementById("lightStatus"),
+      led: document.getElementById("led"),
+
+      btnMusic: document.getElementById("btnMusic"),
+      btnMusicStop: document.getElementById("btnMusicStop"),
+      musicStatus: document.getElementById("musicStatus"),
+      musicLed: document.getElementById("musicLed"),
+      audioPlayer: document.getElementById("audioPlayer"),
+
+      alarmMinutes: document.getElementById("alarmMinutes"),
+      btnAlarm: document.getElementById("btnAlarm"),
+      btnAlarmStop: document.getElementById("btnAlarmStop"),
+      alarmStatus: document.getElementById("alarmStatus"),
+
+      btnHello: document.getElementById("btnHello"),
+
+      notesArea: document.getElementById("notesArea"),
+      taskList: document.getElementById("taskList"),
+      newTaskInput: document.getElementById("newTaskInput"),
+      addTaskBtn: document.getElementById("addTaskBtn"),
+      deleteCheckedBtn: document.getElementById("deleteCheckedBtn"),
+    };
+
+    const state = {
+      lightOn: false,
+      musicOn: false,
+      alarm: {
+        running: false,
+        endsAt: 0,
+        ticker: null,
+      },
+      audio: {
+        ctx: null,
+        seqTimer: null,
+        alarmTimer: null,
+      },
+    };
+
+    function setStatus(text) {
+      el.statusLabel.textContent = text;
+    }
+
+    function toast(msg) {
+      el.toast.textContent = msg;
+      el.toast.classList.add("show");
+      window.clearTimeout(toast._t);
+      toast._t = window.setTimeout(() => el.toast.classList.remove("show"), 1400);
+    }
+
+    function ensureAudioContext() {
+      if (state.audio.ctx) return state.audio.ctx;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      state.audio.ctx = new Ctx();
+      return state.audio.ctx;
+    }
+
+    function playBeep({ frequency = 440, durationMs = 140, gain = 0.06, type = "sine" } = {}) {
+      const ctx = ensureAudioContext();
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+
+      osc.type = type;
+      osc.frequency.value = frequency;
+
+      g.gain.value = 0;
+      osc.connect(g);
+      g.connect(ctx.destination);
+
+      const now = ctx.currentTime;
+      const dur = durationMs / 1000;
+
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(gain, now + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+      osc.start(now);
+      osc.stop(now + dur + 0.02);
+    }
+
+    function updateLightUI() {
+      el.body.classList.toggle("light-on", state.lightOn);
+      el.btnLight.textContent = state.lightOn ? "Turn Off" : "Turn On";
+      el.lightStatus.innerHTML = `Status: <strong>${state.lightOn ? "On" : "Off"}</strong>`;
+      el.led.classList.toggle("on", state.lightOn);
+    }
+
+    function toggleLight() {
+      state.lightOn = !state.lightOn;
+      updateLightUI();
+      toast(state.lightOn ? "Light on 💡" : "Light off 🌙");
+      setStatus(state.lightOn ? "Lighting" : "Ready");
+      playBeep({ frequency: state.lightOn ? 660 : 330, durationMs: 120, type: "triangle" });
+    }
+
+    function setMusicUI() {
+      el.musicLed.classList.toggle("on", state.musicOn);
+      el.btnMusic.disabled = state.musicOn;
+      el.btnMusicStop.disabled = !state.musicOn;
+      el.musicStatus.innerHTML = `Status: <strong>${state.musicOn ? "Playing" : "Stopped"}</strong>`;
+    }
+
+    function startMusic() {
+      if (state.musicOn) return;
+      state.musicOn = true;
+      setMusicUI();
+      toast("Music ON 🎵");
+      setStatus("Playing music");
+      el.audioPlayer.currentTime = 0;
+      el.audioPlayer.play();
+    }
+
+    function stopMusic() {
+      if (!state.musicOn) return;
+      state.musicOn = false;
+      setMusicUI();
+      toast("Music OFF 🛑");
+      setStatus("Ready");
+      el.audioPlayer.pause();
+      el.audioPlayer.currentTime = 0;
+      playBeep({ frequency: 294, durationMs: 120, type: "triangle" });
+    }
+
+    function formatMs(ms) {
+      const s = Math.max(0, Math.floor(ms / 1000));
+      const mm = String(Math.floor(s / 60)).padStart(2, "0");
+      const ss = String(s % 60).padStart(2, "0");
+      return `${mm}:${ss}`;
+    }
+
+    function setAlarmUI() {
+      el.btnAlarm.disabled = state.alarm.running;
+      el.btnAlarmStop.disabled = !state.alarm.running;
+    }
+
+    function tickAlarm() {
+      const remaining = state.alarm.endsAt - Date.now();
+      if (remaining <= 0) {
+        triggerAlarm();
+        return;
+      }
+      el.alarmStatus.innerHTML = `Status: <strong>Counting down (${formatMs(remaining)})</strong>`;
+    }
+
+    function startAlarm() {
+      if (state.alarm.running) return;
+
+      const minutes = Number(el.alarmMinutes.value);
+      if (!Number.isFinite(minutes) || minutes < 1) {
+        toast("Enter valid minutes (>= 1).");
+        playBeep({ frequency: 180, durationMs: 140, gain: 0.07, type: "sawtooth" });
+        return;
+      }
+
+      state.alarm.running = true;
+      state.alarm.endsAt = Date.now() + minutes * 60 * 1000;
+      setAlarmUI();
+      tickAlarm();
+      state.alarm.ticker = window.setInterval(tickAlarm, 250);
+
+      toast(`Alarm in ${minutes} min ⏰`);
+      setStatus("Alarm set");
+      playBeep({ frequency: 740, durationMs: 120, type: "triangle" });
+    }
+
+    function triggerAlarm() {
+      stopAlarmTicker(false);
+
+      toast("Alarm! 🚨");
+      setStatus("ALERT");
+
+      // Alarm sound for ~6 seconds
+      let step = 0;
+      window.clearInterval(state.audio.alarmTimer);
+      state.audio.alarmTimer = window.setInterval(() => {
+        const hi = step % 2 === 0;
+        playBeep({ frequency: hi ? 880 : 440, durationMs: 140, gain: 0.08, type: "sawtooth" });
+        step++;
+        if (step > 24) {
+          window.clearInterval(state.audio.alarmTimer);
+          state.audio.alarmTimer = null;
+        }
+      }, 180);
+
+      el.alarmStatus.innerHTML = `Status: <strong style="color: rgba(239,68,68,.95);">Ringing!</strong>`;
+      el.btnAlarmStop.disabled = false;
+    }
+
+    function stopAlarmTicker(setUi = true) {
+      state.alarm.running = false;
+      window.clearInterval(state.alarm.ticker);
+      state.alarm.ticker = null;
+      state.alarm.endsAt = 0;
+      if (setUi) {
+        el.alarmStatus.innerHTML = `Status: <strong>No alarm</strong>`;
+        setStatus("Ready");
+      }
+      setAlarmUI();
+    }
+
+    function stopAlarm() {
+      window.clearInterval(state.audio.alarmTimer);
+      state.audio.alarmTimer = null;
+      stopAlarmTicker(true);
+      toast("Alarm stopped ✅");
+      playBeep({ frequency: 330, durationMs: 120, type: "triangle" });
+    }
+
+    function hello() {
+      toast("Hello! I am Robo🤖");
+      setStatus("Greeting");
+      playBeep({ frequency: 523, durationMs: 120, type: "triangle" });
+      window.setTimeout(() => setStatus("Ready"), 900);
+    }
+
+    // Wire up
+    el.btnLight.addEventListener("click", toggleLight);
+    el.btnMusic.addEventListener("click", startMusic);
+    el.btnMusicStop.addEventListener("click", stopMusic);
+    el.btnAlarm.addEventListener("click", startAlarm);
+    el.btnAlarmStop.addEventListener("click", stopAlarm);
+    el.btnHello.addEventListener("click", hello);
+
+    // Notes & Tasks logic
+    function renderTasks() {
+      el.taskList.innerHTML = "";
+      const tasks = JSON.parse(localStorage.getItem("tasks") || "[]");
+      tasks.forEach((task, i) => {
+        const li = document.createElement("li");
+        li.style.display = "flex";
+        li.style.alignItems = "center";
+        li.style.gap = "8px";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = !!task.done;
+        cb.addEventListener("change", () => {
+          tasks[i].done = cb.checked;
+          localStorage.setItem("tasks", JSON.stringify(tasks));
+          renderTasks();
+        });
+        const span = document.createElement("span");
+        span.textContent = task.text;
+        if (task.done) span.style.textDecoration = "line-through";
+        li.appendChild(cb);
+        li.appendChild(span);
+        el.taskList.appendChild(li);
+      });
+    }
+    el.addTaskBtn.addEventListener("click", () => {
+      const val = el.newTaskInput.value.trim();
+      if (!val) return;
+      const tasks = JSON.parse(localStorage.getItem("tasks") || "[]");
+      tasks.push({ text: val, done: false });
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      el.newTaskInput.value = "";
+      renderTasks();
+    });
+    el.newTaskInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") el.addTaskBtn.click();
+    });
+    el.deleteCheckedBtn.addEventListener("click", () => {
+      let tasks = JSON.parse(localStorage.getItem("tasks") || "[]");
+      tasks = tasks.filter(task => !task.done);
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      renderTasks();
+    });
+    el.notesArea.value = localStorage.getItem("notes") || "";
+    el.notesArea.addEventListener("input", () => {
+      localStorage.setItem("notes", el.notesArea.value);
+    });
+    renderTasks();
+
+    // Initial UI
+    updateLightUI();
+    setMusicUI();
+    setAlarmUI();
+  </script>
+</body>
+</html>
